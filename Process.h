@@ -16,22 +16,25 @@ class Process
     Process();
     Process(std::string inName);
 
+    Process operator=(Process p);
+
     //PRINT
     void printName();
 
     //SETTERS
     void setIAT(double inIAT);
     void setBurstNum(int num);
+    void setBurstTimes(std::vector<std::pair<double,double> >* times);
 
     //GETTERS
     double getIAT();
     int getBurstNum();
+    double getCPUTime();
     std::string getName();
 
   private:
     std::vector<std::pair<double,double> > burstTimes;
     std::string name;
-    int state;
     int burstNum;
     double initialArrivalT;
 };
