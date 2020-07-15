@@ -24,6 +24,10 @@ void Process::printName() {
   std::cout << name << std::endl;
 }
 
+bool Process::isDone() {
+  return done;
+}
+
 //SETTERS
 void Process::setIAT(double inIAT) {
   initialArrivalT = inIAT;
@@ -51,5 +55,14 @@ std::string Process::getName() {
 }
 
 double Process::getCPUTime() {
-  return burstTimes[0].first;
+  double temp = burstTimes[count].first;
+  if (count == burstNum-1)
+    done = true;
+  return temp;
+}
+
+double Process::getIOTime() {
+  double temp = burstTimes[count].second;
+  count++;
+  return temp;
 }

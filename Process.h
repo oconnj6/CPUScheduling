@@ -21,6 +21,8 @@ class Process
     //PRINT
     void printName();
 
+    bool isDone();
+
     //SETTERS
     void setIAT(double inIAT);
     void setBurstNum(int num);
@@ -30,12 +32,15 @@ class Process
     double getIAT();
     int getBurstNum();
     double getCPUTime();
+    double getIOTime();
     std::string getName();
 
   private:
     std::vector<std::pair<double,double> > burstTimes;
     std::string name;
     int burstNum;
+    bool done = false;
+    int count = 0;
     double initialArrivalT;
 };
 
