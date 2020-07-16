@@ -33,6 +33,8 @@ class Process
     int getBurstNum();
     double getCPUTime();
     double getIOTime();
+    int getRemBursts();
+    int getCount();
     std::string getName();
 
   private:

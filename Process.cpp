@@ -58,11 +58,20 @@ double Process::getCPUTime() {
   double temp = burstTimes[count].first;
   if (count == burstNum-1)
     done = true;
+  count++;
   return temp;
 }
 
 double Process::getIOTime() {
-  double temp = burstTimes[count].second;
-  count++;
+  double temp = burstTimes[count-1].second;
+  //count++;
   return temp;
+}
+
+int Process::getRemBursts() {
+  return burstNum - count;
+}
+
+int Process::getCount() {
+  return count;
 }
