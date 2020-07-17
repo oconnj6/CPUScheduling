@@ -6,7 +6,7 @@
 #include <math.h>
 #include "Process.h"
 
-void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP) {
+void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP) {
   std::vector<int> readyQueue;
   int pAdded = 0;
   double time = 0.0;
@@ -16,7 +16,7 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
   double CPUTime = 0;
   double IOTime = 0;
   double waitBlock = 9999;
-  double readyBlock = 9999;
+  double readyBlock = 0;
   bool justAdded = false;
   std::vector<int> waitQueue;
 
@@ -35,24 +35,23 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
       justAdded = false;
 
       if (readyQueue.size() > 0) {
-        CPUTime = processes[readyQueue[0]].getCPUTime();
+        CPUTime = processes[readyQueue[0]]->getCPUTime();
+        if (time > readyBlock) {
+          std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
+          std::cout << " started using the CPU for " << CPUTime << "ms burst" << std::endl;
+          readyBlock = time + CPUTime;
+        }
       }
 
       if (waitQueue.size() > 0) {
-        IOTime = processes[waitQueue[0]].getIOTime();
+        IOTime = processes[waitQueue[0]]->getIOTime();
       }
 
       //If readyQueue has a process, find the CPU time
-      if (readyQueue.size() > 0) {
-        //Add context switch time
-        std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]].getName();
-        std::cout << " started using the CPU for " << CPUTime << "ms burst" << std::endl;
-        readyBlock = time + CPUTime;
-      }
       //If waitQ has a process, find the I/O time
       if (waitQueue.size() > 0) {
-        IOTime = processes[waitQueue[0]].getIOTime();
-        std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]].getName();
+        IOTime = processes[waitQueue[0]]->getIOTime();
+        std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]]->getName();
         std::cout << " switching out of CPU; will block on I/O until time ";
         std::cout << time + IOTime << "ms" << std::endl;
         waitBlock = time + IOTime;
@@ -60,12 +59,13 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
 
       //If processes Added is less than the total number of processes
       if ( pAdded < numP ) {
-          if ( time + CPUTime > processes[pAdded].getIAT() && time + IOTime > processes[pAdded].getIAT()) {
+          if ( time + CPUTime > processes[pAdded]->getIAT() && time + IOTime > processes[pAdded]->getIAT()) {
             readyQueue.push_back(pAdded);
-            dif = processes[pAdded].getIAT() - time;
-            time = processes[pAdded].getIAT();
+            if (pAdded != 0)
+              dif = processes[pAdded]->getIAT() - time;
+            time = processes[pAdded]->getIAT();
             justAdded = true;
-            std::cout << "time " << time << "ms: Process " << processes[readyQueue[readyQueue.size()-1]].getName();
+            std::cout << "time " << time << "ms: Process " << processes[readyQueue[readyQueue.size()-1]]->getName();
             std::cout << " arrived; added to the ready queue" << std::endl;
             pAdded++;
           }
@@ -73,15 +73,14 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
 
       //Needs to be fixed!!
       if (CPUTime < IOTime) {
-        if ( processes[readyQueue[0]].getCount() != 0) {
+        if ( processes[readyQueue[0]]->getCount() != 0) {
           time += CPUTime;
           count++;
-
-          std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]].getName();
-          std::cout << " completed a CPU burst; " << processes[readyQueue[0]].getRemBursts();
+          std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
+          std::cout << " completed a CPU burst; " << processes[readyQueue[0]]->getRemBursts();
           std::cout << " bursts to go" << std::endl;
 
-          if (processes[readyQueue[0]].getRemBursts() != 0) {
+          if (processes[readyQueue[0]]->getRemBursts() != 0) {
             waitQueue.push_back(readyQueue[0]);
             readyQueue.erase(readyQueue.begin());
           }
@@ -92,14 +91,14 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
       }
       else {
         if (justAdded) {
-          CPUTime = processes[readyQueue[0]].getCPUTime();
-          std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]].getName();
+          CPUTime = processes[readyQueue[0]]->getCPUTime();
+          std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
           std::cout << " started using the CPU for " << CPUTime << "ms burst" << std::endl;
         }
         time += (IOTime - dif);
         dif = 0;
 
-        std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]].getName();
+        std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]]->getName();
         std::cout << " completed I/O; added to ready queue" << std::endl;
 
         readyQueue.push_back(waitQueue[0]);
@@ -143,8 +142,8 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
         std::cout << "BROKEN" << std::endl;
         break;
       }*/
-      if ( processes[readyQueue[0]].isDone()) {
-        std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]].getName();
+      if ( processes[readyQueue[0]]->isDone()) {
+        std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
         std::cout << " terminated" << std::endl;
         doneP++;
         readyQueue.erase(readyQueue.begin());
@@ -157,12 +156,34 @@ void FCFS(std::vector<Process> &queue,std::vector<Process> &processes, int numP)
 
 }
 
+
+bool comparator(Process * & lhs, Process * & rhs) {
+  return lhs->getIAT() > rhs->getIAT();
+}
+
+void SJF(std::vector<Process*> & processes, float lambda) {
+  std::cout << "time 0ms: Simulator started for SJF [Q <empty>]" << std::endl;
+  std::vector<Process> readyQueue;
+  std::vector<Process> waitQueue;
+  int burstCount = 0;
+
+  while(1) {
+    break;
+  }
+}
+
+
+bool operator<(const Process & lhs, const Process & rhs) {
+    return lhs.getIAT() < rhs.getIAT();
+}
+
 void orderQueue(std::vector<Process> &queue, int alg,
-                    int numP, std::vector<Process> &processes) {
+                    int numP, std::vector<Process*> &processes, float lambda) {
   if (alg == 1) {
+    std::cout << processes.size() << std::endl;
     for (unsigned int i = 0;i < processes.size();i++) {
-      std::cout << "Process " << processes[i].getName() << " [NEW] (arrival time ";
-      std::cout << processes[i].getIAT() << "ms) " << processes[i].getBurstNum();
+      std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
+      std::cout << processes[i]->getIAT() << "ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts" << std::endl;
     }
     //Need to sort array by IAT()
@@ -170,7 +191,13 @@ void orderQueue(std::vector<Process> &queue, int alg,
     FCFS(queue, processes, numP);
   }
   if (alg == 2) {
-    //SJF();
+    std::cout << processes.size() << std::endl;
+    for (unsigned int i = 0;i < processes.size();i++) {
+      std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
+      std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
+      std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
+    }
+    SJF(processes, lambda);
   }
   if (alg == 3) {
     //SRT();
@@ -182,7 +209,7 @@ void orderQueue(std::vector<Process> &queue, int alg,
 
 int main(int argc, char* argv[]) {
   //Loop to run all scheduling algorithms
-  for (int algo = 1; algo < 2; algo++) {
+  for (int algo = 1; algo < 3; algo++) {
     int numProcesses = 0;
     double lambda;
     int maxNum;
@@ -194,7 +221,7 @@ int main(int argc, char* argv[]) {
     maxNum = atoi(argv[4]);
 
     //Vector of processes
-    std::vector<Process> queue;
+    std::vector<Process*> queue(numProcesses);
 
     //Empty vector to be arranged by scheduling algorithm
     std::vector<Process> orderedQueue(numProcesses);
@@ -206,26 +233,24 @@ int main(int argc, char* argv[]) {
       letter = char (65+k);
 
       //Creates Process object
-      Process* temp = new Process(letter);
+      Process *temp = new Process(letter);
 
-      //temp -> printName();
       //Adds to the vector of processes
-      queue.push_back(*temp);
+      queue[k] = temp;
 
       //Calculates initial process arrival time
-      //DO NOT KNOW IF I DID THIS CORRECTLY
       double r = drand48();
       double x = -log( r ) / lambda;
       if (x > maxNum) {
         continue;
       }
-      queue[k].setIAT(x);
+      queue[k]->setIAT(floor(x));
 
       //Calculates number of CPU bursts for a process
       r = drand48();
       x = int (r * 100);
       x++;
-      queue[k].setBurstNum(x);
+      queue[k]->setBurstNum(trunc(x));
 
       //Allocates data that is not yet freed
       std::vector<std::pair<double,double> >* times = new std::vector<std::pair<double,double> >(x);
@@ -234,32 +259,27 @@ int main(int argc, char* argv[]) {
 
         //Allocates data that is not yet freed
         std::pair<double, double>* p = new std::pair<double, double>;
-        p -> first = drand48();
+        int t = -log(drand48()) / lambda;
+        p -> first = ceil(t);
 
         //Prevents the last pair to have an io time since processes end in CPU
         if (i != x-1) {
-          p -> second = drand48();
+          int t1 = -log(drand48()) / lambda;
+          p -> second = ceil(t1);
         }
 
         (*times)[i] = *p;
         //std::cout << (*times)[i].first << std::endl;
       }
       //Sets burst times
-      queue[k].setBurstTimes(times);
+      queue[k]->setBurstTimes(times);
 
     }
-    //std::cout << queue[1].getBurstNum() << std::endl;
     //Orders the queue according to the proper algorithm
-    orderQueue(orderedQueue, 1, numProcesses, queue);
-
-  std::cout << "----------------------------------------------------------" << std::endl;
-
-  //queue[2].printName();
-  //Process a = Process();
-
-
-
-  //printf("%f\n", lambda);
+    sort(queue.begin(), queue.end(), comparator);
+    std::reverse(queue.begin(), queue.end());
+    orderQueue(orderedQueue, algo, numProcesses, queue, lambda);
+    std::cout << "----------------------------------------------------------" << std::endl;
   }
   return 0;
 

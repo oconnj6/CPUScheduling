@@ -42,7 +42,7 @@ void Process::setBurstTimes(std::vector<std::pair<double,double> >* times) {
 }
 
 //GETTERS
-double Process::getIAT() {
+double Process::getIAT() const {
   return initialArrivalT;
 }
 
@@ -60,6 +60,10 @@ double Process::getCPUTime() {
     done = true;
   count++;
   return temp;
+}
+
+double Process::getCPUTimeNoSped(int index) const {
+  return burstTimes[index].first;
 }
 
 double Process::getIOTime() {

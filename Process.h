@@ -29,9 +29,10 @@ class Process
     void setBurstTimes(std::vector<std::pair<double,double> >* times);
 
     //GETTERS
-    double getIAT();
+    double getIAT() const;
     int getBurstNum();
     double getCPUTime();
+    double getCPUTimeNoSped(int index) const;
     double getIOTime();
     int getRemBursts();
     int getCount();
