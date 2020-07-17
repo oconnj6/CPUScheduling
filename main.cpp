@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <math.h>
 #include "Process.h"
 
@@ -15,7 +16,7 @@ void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP
   int doneP = 0;
   double CPUTime = 0;
   double IOTime = 0;
-  double waitBlock = 9999;
+  double waitBlock = 0;
   double readyBlock = 0;
   bool justAdded = false;
   std::vector<int> waitQueue;
@@ -30,72 +31,105 @@ void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP
         //  std::cout << readyQueue[0].getCPUTime() << " - ";
 
       //Adds the amount of time the next process takes on the CPU
-      CPUTime = 9999;
+      if (time >= readyBlock)
+        CPUTime = 9999;
       IOTime = 9999;
       justAdded = false;
 
       if (readyQueue.size() > 0) {
-        CPUTime = processes[readyQueue[0]]->getCPUTime();
-        if (time > readyBlock) {
+//        std::cout << readyBlock << " - " << time << std::endl;
+        if (time >= readyBlock) {
+          CPUTime = processes[readyQueue[0]]->getCPUTime();
           std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
           std::cout << " started using the CPU for " << CPUTime << "ms burst" << std::endl;
+          processes[readyQueue[0]]->setCPUDone(time + CPUTime);
           readyBlock = time + CPUTime;
         }
       }
-
-      if (waitQueue.size() > 0) {
-        IOTime = processes[waitQueue[0]]->getIOTime();
-      }
-
       //If readyQueue has a process, find the CPU time
       //If waitQ has a process, find the I/O time
       if (waitQueue.size() > 0) {
         IOTime = processes[waitQueue[0]]->getIOTime();
-        std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]]->getName();
-        std::cout << " switching out of CPU; will block on I/O until time ";
-        std::cout << time + IOTime << "ms" << std::endl;
+        //processes[waitQueue[0]]->setWaitDone(time + IOTime);
         waitBlock = time + IOTime;
       }
 
       //If processes Added is less than the total number of processes
       if ( pAdded < numP ) {
-          if ( time + CPUTime > processes[pAdded]->getIAT() && time + IOTime > processes[pAdded]->getIAT()) {
+          while ( time + CPUTime > processes[pAdded]->getIAT() && time + IOTime > processes[pAdded]->getIAT()) {
             readyQueue.push_back(pAdded);
             if (pAdded != 0)
-              dif = processes[pAdded]->getIAT() - time;
+              dif += processes[pAdded]->getIAT() - time;
             time = processes[pAdded]->getIAT();
             justAdded = true;
             std::cout << "time " << time << "ms: Process " << processes[readyQueue[readyQueue.size()-1]]->getName();
             std::cout << " arrived; added to the ready queue" << std::endl;
             pAdded++;
+            if (pAdded == numP || pAdded == 1) {
+              break;
+            }
           }
       }
+      //std::cout << readyQueue.size() << std::endl;
 
+      int IOCheck;
+      int CPUCheck;
+      if (waitQueue.size() > 0) {
+        IOCheck = processes[waitQueue[0]]->getWaitDone();
+      }
+      else {
+        IOCheck = IOTime + time;
+      }
+
+      if (readyQueue.size() > 0) {
+        CPUCheck = processes[readyQueue[0]]->getCPUDone();
+      }
+      else {
+        CPUCheck = CPUTime + time;
+      }
       //Needs to be fixed!!
-      if (CPUTime < IOTime) {
+      if ( CPUCheck < IOCheck ) {
         if ( processes[readyQueue[0]]->getCount() != 0) {
-          time += CPUTime;
+          if (justAdded) {
+            time += (CPUTime - dif);
+            dif = 0;
+          }
+          else if (CPUTime == 9999 ) {
+            time = readyBlock;
+            readyBlock = 0;
+          }
+          else {
+            time = CPUCheck;
+          }
           count++;
           std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
           std::cout << " completed a CPU burst; " << processes[readyQueue[0]]->getRemBursts();
           std::cout << " bursts to go" << std::endl;
 
-          if (processes[readyQueue[0]]->getRemBursts() != 0) {
+          if (processes[readyQueue[0]]->getRemBursts() != 0 ) {
+            IOTime = processes[readyQueue[0]]->getIOTime();
+            std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
+            std::cout << " switching out of CPU; will block on I/O until time ";
+            std::cout << time + IOTime << "ms" << std::endl;
+            processes[readyQueue[0]]->setWaitDone(time + IOTime);
+
             waitQueue.push_back(readyQueue[0]);
             readyQueue.erase(readyQueue.begin());
           }
         }
       }
       else if (CPUTime == 9999 && IOTime == 9999) {
+        std::cout << "NO" << std::endl;
         continue;
       }
       else {
         if (justAdded) {
-          CPUTime = processes[readyQueue[0]]->getCPUTime();
+          CPUTime = processes[readyQueue[0]]->getCPUTimeNoSped(processes[readyQueue[0]]->getCount());
           std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
           std::cout << " started using the CPU for " << CPUTime << "ms burst" << std::endl;
         }
-        time += (IOTime - dif);
+        //std::cout << dif << " -- " << IOTime << std::endl;
+        time = processes[waitQueue[0]]->getWaitDone();
         dif = 0;
 
         std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]]->getName();
@@ -142,7 +176,7 @@ void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP
         std::cout << "BROKEN" << std::endl;
         break;
       }*/
-      if ( processes[readyQueue[0]]->isDone()) {
+      if ( processes[readyQueue[0]]->isDone() && time >= readyBlock) {
         std::cout << "time " << time << "ms: Process " << processes[readyQueue[0]]->getName();
         std::cout << " terminated" << std::endl;
         doneP++;

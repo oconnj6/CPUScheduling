@@ -41,6 +41,14 @@ void Process::setBurstTimes(std::vector<std::pair<double,double> >* times) {
   burstTimes = *times;
 }
 
+void Process::setWaitDone(int num) {
+  waitDone = num;
+}
+
+void Process::setCPUDone(int num) {
+  CPUDone = num;
+}
+
 //GETTERS
 double Process::getIAT() const {
   return initialArrivalT;
@@ -78,4 +86,12 @@ int Process::getRemBursts() {
 
 int Process::getCount() {
   return count;
+}
+
+int Process::getWaitDone() {
+  return waitDone;
+}
+
+int Process::getCPUDone() {
+  return CPUDone;
 }
