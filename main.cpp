@@ -3,9 +3,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <algorithm>
 #include <math.h>
 #include "Process.h"
+
 
 void printQueue(std::vector<Process*> &processes, std::vector<int> readyQueue) {
   if (readyQueue.size() == 0) {
@@ -75,6 +75,7 @@ void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP
         printQueue(processes, readyQueue);
         totalBurstTime += CPUTime;
         totalBursts++;
+
 
         totalTurnATime += (CPUTime + 2);
         totalTurns++;
@@ -167,14 +168,301 @@ bool comparator(Process * & lhs, Process * & rhs) {
   return lhs->getIAT() > rhs->getIAT();
 }
 
-void SJF(std::vector<Process*> & processes, float lambda) {
-  std::cout << "time 0ms: Simulator started for SJF [Q <empty>]" << std::endl;
-  std::vector<Process> readyQueue;
-  std::vector<Process> waitQueue;
-  int burstCount = 0;
+bool SJFcomparator(Process * & lhs, Process * & rhs) {
+  return lhs->getCPUTimeNoSped() > rhs->getCPUTimeNoSped();
+}
 
-  while(1) {
-    break;
+bool isIOBlockTime(std::vector<std::pair<int, Process*> > & ioBlockUntil, int time) {
+  for (int i = 0; i < ioBlockUntil.size(); i++) {
+    if (ioBlockUntil[i].first == time) return true;
+  }
+  return false;
+}
+
+bool isComplete(std::vector<Process*> & processes, int time, int offCPUTime) {
+  bool t = true;
+  for (int i = 0; i < processes.size(); i++) {
+    if (!processes[i]->isDone()) t = false;
+    else if (processes[i]->isDone() && !processes[i]->printedIsDone){
+      processes[i]->printedIsDone = true;
+      if (processes.size() == 1 || processes.size() == 2)
+        std::cout << "time " << offCPUTime << "ms: Process " << processes[i]->getName() << " terminated [ADD Q]" << std::endl;
+    }
+  }
+  return t;
+}
+
+void SJF(std::vector<Process*> & processes, float lambda, int contextSwitch) {
+  std::cout << "time 0ms: Simulator started for SJF [Q <empty>]" << std::endl;
+  std::vector<Process*> readyQueue;
+  std::vector<Process*> waitQueue;
+  std::vector<Process*> arrivedProcesses; //processes that are in the ready queue
+  Process * CPUProcess = NULL;
+  int tau = 1 / lambda;
+  int offCPUTime = -1;
+  std::vector<std::pair<int, Process *> > ioBlockUntil;
+  std::vector<std::pair<int, Process *> > arrivalTimes;
+  int switchToCPUAt = -1;
+
+  std::cout << "time " << processes[0]->getIAT() << "ms: Process " << processes[0]->getName() << " (tau " << tau << "ms) arrived; added to ready queue [ADD Q]" << std::endl;
+  for (int i = 0; i < processes.size(); i++) {
+    std::pair<int, Process *> t = std::make_pair(processes[i]->getIAT(), processes[i]);
+    arrivalTimes.push_back(t);
+    processes[i]->addToBurstAvg(100);
+    readyQueue.push_back(processes[i]);
+  }
+  int count = 0;
+  for (int time = 0; time > - 1; time++) {
+
+    //if (time == readyQueue[0]->getIAT()) { //this handles when processes first arrive
+    if (isIOBlockTime(arrivalTimes, time)) {
+      std::pair<int, Process*> arrivalPair;
+      int i;
+      for (i = 0; i < arrivalTimes.size(); i++) {
+        if (arrivalTimes[i].first == time) arrivalPair = arrivalTimes[i];
+      }
+      arrivedProcesses.push_back(arrivalPair.second);
+      if (CPUProcess == NULL) { //add curr process to CPU and shift readyQueue down
+        CPUProcess = arrivalPair.second; //add curr process to CPU
+        readyQueue.erase(readyQueue.begin()); //remove curr process from readyQ
+        time += contextSwitch / 2; //THIS MAY CAUSE ISSUES IN THE FUTURE W TIMES BEING OUT OF ORDER
+        if (readyQueue.size() > 1) std::rotate(readyQueue.begin(), readyQueue.begin() + 1, readyQueue.end()); //shift left once if there are multiple processes
+        int t = CPUProcess->getCPUTime();
+        count++;
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) started using the CPU for " << t << "ms burst [ADD Q]" << std::endl;
+        offCPUTime = time + t;
+        CPUProcess->addToBurstAvg(t); //to calculate tau in the future
+      }
+      else
+        std::cout << "time " << time << "ms: Process " << arrivalPair.second->getName() << " (tau " << arrivalPair.second->getRunningBurstAvg() << "ms) arrived; added to ready queue [ADD Q]" << std::endl;
+    }
+
+    if (time == offCPUTime) { //CPUProcess has finished a burst
+      bool finishedProcess = false;
+      if (CPUProcess->printedIsDone) {
+        if (processes.size() != 1 && processes.size() != 2)
+        std::cout << "time " << offCPUTime << "ms: Process " << CPUProcess->getName() << " terminated [ADD Q]" << std::endl;
+        CPUProcess = NULL;
+        switchToCPUAt = time;
+        finishedProcess = true;
+      }
+      if (!finishedProcess && CPUProcess->printedIsDone == false && CPUProcess->isDone()) {
+        CPUProcess->printedIsDone = true;
+        CPUProcess = NULL;
+        continue;
+      }
+      if (!finishedProcess) {
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) completed a CPU burst; " << CPUProcess->getRemBursts() << " bursts to go [ADD Q]" << std::endl;
+        std::cout << "time " << time << "ms: Recalculated tau = " << CPUProcess->getRunningBurstAvg() << "ms for process " << CPUProcess->getName() << " [ADD Q]" << std::endl;
+        double ioBlockTime = time + CPUProcess->getIOTime(); //THIS MAY NOT BE GETTING THE RIGHT IO TIME
+        std::pair<int, Process*> t = std::make_pair(ioBlockTime, CPUProcess);
+        ioBlockUntil.push_back(t);
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " switching out of CPU; will block on I/O until time " << ioBlockTime << "ms [ADD Q]" << std::endl;
+        waitQueue.push_back(CPUProcess);
+        CPUProcess->inWaitQueue = true;
+        CPUProcess = NULL;
+        switchToCPUAt = time + contextSwitch;
+      }
+    }
+
+    if (time == switchToCPUAt && CPUProcess == NULL) { //add shortest cpu burst process first (may need to make arrivedProcesses vector)
+      std::sort(arrivedProcesses.begin(), arrivedProcesses.end(), SJFcomparator);
+      std::reverse(arrivedProcesses.begin(), arrivedProcesses.end());
+      int i;
+      for (i = 0; i < arrivedProcesses.size(); i++) {
+        //std::cout << "Process: " << arrivedProcesses[i]->getName() << std::endl;
+        if (!arrivedProcesses[i]->inWaitQueue && !arrivedProcesses[i]->printedIsDone) {
+          CPUProcess = arrivedProcesses[i];
+        }
+      }
+      if (CPUProcess == NULL) {
+        continue;
+      }
+      double t = CPUProcess->getCPUTime();
+      count++;
+      std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) started using the CPU for " << t << "ms burst [ADD Q]" << std::endl;
+      offCPUTime = time + t;
+      CPUProcess->addToBurstAvg(t); //to calculate tau in the future
+    }
+
+    if (isIOBlockTime(ioBlockUntil, time)) {
+      std::pair<int, Process*> processPair;
+      for (int i = 0; i < ioBlockUntil.size(); i++) {
+        if (ioBlockUntil[i].first == time) processPair = ioBlockUntil[i];
+      }
+      Process * t = processPair.second; //first process in i/o that will finish
+      std::cout << "time " << time << "ms: Process " << t->getName() <<  " (tau " << t->getRunningBurstAvg() << "ms) completed I/O; added to ready queue [ADD Q]" << std::endl;
+      t->inWaitQueue = false;
+      readyQueue.push_back(t);
+      if (CPUProcess == NULL) {
+        CPUProcess = t;
+        double tempTime = t->getCPUTime();
+        count++;
+        std::cout << "time " << time + contextSwitch / 2 << "ms: Process " << t->getName() << " (tau " << t->getRunningBurstAvg() << "ms) started using the CPU for " << tempTime << "ms burst [ADD Q]" << std::endl;
+        t->addToBurstAvg(tempTime); //to calculate tau in the future
+        offCPUTime = time + tempTime;
+        if (t->isDone()) {
+          switchToCPUAt = time;
+        }
+      }
+    }
+
+    if (isComplete(processes, time, offCPUTime)) {
+      if (processes.size() != 1 && processes.size() != 2) {
+        std::cout << "time " << offCPUTime << "ms: Process " << CPUProcess->getName() << " terminated [ADD Q]" << std::endl;
+        std::cout << "time " << offCPUTime << "ms: Simulator ended for SJF [ADD Q]" << std::endl;
+      }
+      else {
+        std::cout << "time " << offCPUTime << "ms: Simulator ended for SJF [ADD Q]" << std::endl;
+      }
+      break;
+    }
+  }
+}
+
+void SRT(std::vector<Process*> & processes, float lambda, int contextSwitch) {
+  std::cout << "time 0ms: Simulator started for SRT [Q <empty>]" << std::endl;
+  std::vector<Process*> readyQueue;
+  std::vector<Process*> waitQueue;
+  std::vector<Process*> arrivedProcesses; //processes that are in the ready queue
+  std::vector<Process*> readyQueueCopy;
+  Process * CPUProcess = NULL;
+  int tau = 1 / lambda;
+  int offCPUTime = -1;
+  std::vector<std::pair<int, Process *> > ioBlockUntil;
+  std::vector<std::pair<int, Process *> > arrivalTimes;
+  int switchToCPUAt = -1;
+
+  std::cout << "time " << processes[0]->getIAT() << "ms: Process " << processes[0]->getName() << " (tau " << tau << "ms) arrived; added to ready queue [ADD Q]" << std::endl;
+  for (int i = 0; i < processes.size(); i++) {
+    std::pair<int, Process *> t = std::make_pair(processes[i]->getIAT(), processes[i]);
+    arrivalTimes.push_back(t);
+    processes[i]->addToBurstAvg(100);
+    readyQueue.push_back(processes[i]);
+  }
+  int count = 0;
+  for (int time = 0; time > - 1; time++) {
+
+    //if (time == readyQueue[0]->getIAT()) { //this handles when processes first arrive
+    if (isIOBlockTime(arrivalTimes, time)) {
+      std::pair<int, Process*> arrivalPair;
+      int i;
+      for (i = 0; i < arrivalTimes.size(); i++) {
+        if (arrivalTimes[i].first == time) arrivalPair = arrivalTimes[i];
+      }
+      arrivalPair.second->hasArrived = true;
+      arrivedProcesses.push_back(arrivalPair.second);
+      if (CPUProcess == NULL) { //add curr process to CPU and shift readyQueue down
+        CPUProcess = arrivalPair.second; //add curr process to CPU
+        readyQueue.erase(readyQueue.begin()); //remove curr process from readyQ
+        time += contextSwitch / 2; //THIS MAY CAUSE ISSUES IN THE FUTURE W TIMES BEING OUT OF ORDER
+        if (readyQueue.size() > 1) std::rotate(readyQueue.begin(), readyQueue.begin() + 1, readyQueue.end()); //shift left once if there are multiple processes
+        int t = CPUProcess->getCPUTimeNoSped(); //will need to get sped version if its fastest
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) started using the CPU with " << t << "ms burst remaining [ADD Q]" << std::endl;
+
+        readyQueueCopy = std::vector<Process*>(readyQueue);
+        std::sort(readyQueueCopy.begin(), readyQueueCopy.end(), SJFcomparator);
+        std::reverse(readyQueueCopy.begin(), readyQueueCopy.end());
+        if (readyQueueCopy[0]->getCPUTimeNoSped() < t) {
+          std::cout << "time " << time << "ms: Process " << readyQueueCopy[0]->getName() << " (tau " << readyQueueCopy[0]->getRunningBurstAvg() << "ms) will preempt " << CPUProcess->getName() << "[ADD Q]" << std::endl;
+
+        }
+
+        offCPUTime = time + t;
+        CPUProcess->addToBurstAvg(t); //to calculate tau in the future
+      }
+      else
+        std::cout << "time " << time << "ms: Process " << arrivalPair.second->getName() << " (tau " << arrivalPair.second->getRunningBurstAvg() << "ms) arrived; added to ready queue [ADD Q]" << std::endl;
+    }
+
+    if (time == offCPUTime) { //CPUProcess has finished a burst
+      bool finishedProcess = false;
+      if (CPUProcess->printedIsDone) {
+        if (processes.size() != 1 && processes.size() != 2)
+        std::cout << "time " << offCPUTime << "ms: Process " << CPUProcess->getName() << " terminated [ADD Q]" << std::endl;
+        CPUProcess = NULL;
+        switchToCPUAt = time;
+        finishedProcess = true;
+      }
+      if (!finishedProcess && CPUProcess->printedIsDone == false && CPUProcess->isDone()) {
+        CPUProcess->printedIsDone = true;
+        CPUProcess = NULL;
+        continue;
+      }
+      if (!finishedProcess) {
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) completed a CPU burst; " << CPUProcess->getRemBursts() << " bursts to go [ADD Q]" << std::endl;
+        std::cout << "time " << time << "ms: Recalculated tau = " << CPUProcess->getRunningBurstAvg() << "ms for process " << CPUProcess->getName() << " [ADD Q]" << std::endl;
+        double ioBlockTime = time + CPUProcess->getIOTime(); //THIS MAY NOT BE GETTING THE RIGHT IO TIME
+        std::pair<int, Process*> t = std::make_pair(ioBlockTime, CPUProcess);
+        ioBlockUntil.push_back(t);
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " switching out of CPU; will block on I/O until time " << ioBlockTime << "ms [ADD Q]" << std::endl;
+        waitQueue.push_back(CPUProcess);
+        CPUProcess->inWaitQueue = true;
+        CPUProcess = NULL;
+        switchToCPUAt = time + contextSwitch;
+      }
+    }
+
+    if (time == switchToCPUAt && CPUProcess == NULL) { //add shortest cpu burst process first (may need to make arrivedProcesses vector)
+      std::sort(arrivedProcesses.begin(), arrivedProcesses.end(), SJFcomparator);
+      std::reverse(arrivedProcesses.begin(), arrivedProcesses.end());
+      int i;
+      for (i = 0; i < arrivedProcesses.size(); i++) {
+        if (!arrivedProcesses[i]->inWaitQueue && !arrivedProcesses[i]->printedIsDone) {
+          CPUProcess = arrivedProcesses[i];
+        }
+      }
+      if (CPUProcess == NULL) {
+        continue;
+      }
+      double t = CPUProcess->getCPUTime();
+      count++;
+      std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " (tau " << CPUProcess->getRunningBurstAvg() << "ms) started using the CPU with " << t << "ms burst remaining [ADD Q]" << std::endl;
+      offCPUTime = time + t;
+      CPUProcess->addToBurstAvg(t); //to calculate tau in the future
+    }
+
+    if (isIOBlockTime(ioBlockUntil, time)) {
+      std::pair<int, Process*> processPair;
+      for (int i = 0; i < ioBlockUntil.size(); i++) {
+        if (ioBlockUntil[i].first == time) processPair = ioBlockUntil[i];
+      }
+      Process * t = processPair.second; //first process in i/o that will finish
+      if (t->getCPUTimeNoSped() + time < offCPUTime) {
+        std::cout << "time " << time << "ms: Process " << t->getName() <<  " (tau " << t->getRunningBurstAvg() << "ms) completed I/O; preempting " << CPUProcess->getName() << " [ADD Q]" << std::endl;
+        readyQueue.push_back(CPUProcess);
+        CPUProcess = t;
+        int tempTime = t->getCPUTime();
+        std::cout << "time " << time + contextSwitch << "ms: Process " << t->getName() << " (tau " << t->getRunningBurstAvg() << "ms) started using the CPU with " << tempTime << "ms burst remaining [ADD Q]" << std::endl;
+        offCPUTime = time + tempTime + contextSwitch;
+      }
+      else
+        std::cout << "time " << time << "ms: Process " << t->getName() <<  " (tau " << t->getRunningBurstAvg() << "ms) completed I/O; added to ready queue [ADD Q]" << std::endl;
+      t->inWaitQueue = false;
+      readyQueue.push_back(t);
+      if (CPUProcess == NULL) {
+        CPUProcess = t;
+        double tempTime = t->getCPUTime();
+        count++;
+        std::cout << "time " << time + contextSwitch / 2 << "ms: Process " << t->getName() << " (tau " << t->getRunningBurstAvg() << "ms) started using the CPU with " << tempTime << "ms burst remaining [ADD Q]" << std::endl;
+        t->addToBurstAvg(tempTime); //to calculate tau in the future
+        offCPUTime = time + tempTime;
+        if (t->isDone()) {
+          switchToCPUAt = time;
+        }
+      }
+    }
+
+    if (isComplete(processes, time, offCPUTime)) {
+      if (processes.size() != 1 && processes.size() != 2) {
+        std::cout << "time " << time << "ms: Process " << CPUProcess->getName() << " terminated [ADD Q]" << std::endl;
+        std::cout << "time " << time << "ms: Simulator ended for SRT [ADD Q]" << std::endl;
+      }
+      else {
+        std::cout << "time " << offCPUTime << "ms: Simulator ended for SRT [ADD Q]" << std::endl;
+      }
+      break;
+    }
   }
 }
 
@@ -330,10 +618,9 @@ bool operator<(const Process & lhs, const Process & rhs) {
     return lhs.getIAT() < rhs.getIAT();
 }
 
-void orderQueue(std::vector<Process> &queue, int alg,
-                    int numP, std::vector<Process*> &processes, float lambda, int tSlice) {
+void orderQueue(int alg,
+                    int numP, std::vector<Process*> &processes, float lambda, int contextSwitch, int tSlice) {
   if (alg == 1) {
-    std::cout << processes.size() << std::endl;
     for (unsigned int i = 0;i < processes.size();i++) {
       std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
       std::cout << processes[i]->getIAT() << "ms) " << processes[i]->getBurstNum();
@@ -341,19 +628,27 @@ void orderQueue(std::vector<Process> &queue, int alg,
     }
     //Need to sort array by IAT()
 
-    FCFS(queue, processes, numP);
+    FCFS(processes, numP);
   }
   if (alg == 2) {
-    std::cout << processes.size() << std::endl;
     for (unsigned int i = 0;i < processes.size();i++) {
       std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
       std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
     }
-    SJF(processes, lambda);
+    sort(processes.begin(), processes.end(), comparator);
+    std::reverse(processes.begin(), processes.end());
+    SJF(processes, lambda, contextSwitch);
   }
   if (alg == 3) {
-    //SRT();
+    for (unsigned int i = 0;i < processes.size();i++) {
+      std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
+      std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
+      std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
+    }
+    sort(processes.begin(), processes.end(), comparator);
+    std::reverse(processes.begin(), processes.end());
+    SRT(processes, lambda, contextSwitch);
   }
   if (alg == 4) {
     std::cout << processes.size() << std::endl;
@@ -370,7 +665,7 @@ void orderQueue(std::vector<Process> &queue, int alg,
 
 int main(int argc, char* argv[]) {
   //Loop to run all scheduling algorithms
-  for (int algo = 1; algo < 2; algo++) {
+  for (int algo = 1; algo < 4; algo++) {
     int numProcesses = 0;
     double lambda;
     int maxNum;
@@ -381,9 +676,8 @@ int main(int argc, char* argv[]) {
     srand48(atoi(argv[2]));
     lambda = atof(argv[3]);
     maxNum = atoi(argv[4]);
-    tSlice = atoi(argv[7]);
-
-
+    int contextSwitch = atoi(argv[5]);
+    int tSlice = atoi(argv[7]);
     //Vector of processes
     std::vector<Process*> queue(numProcesses);
 
@@ -442,7 +736,7 @@ int main(int argc, char* argv[]) {
     //Orders the queue according to the proper algorithm
     sort(queue.begin(), queue.end(), comparator);
     std::reverse(queue.begin(), queue.end());
-    orderQueue(orderedQueue, algo, numProcesses, queue, lambda, tSlice);
+    orderQueue(algo, numProcesses, queue, lambda, contextSwitch, tSlice);
     for (int i = 0;i<numProcesses;i++) {
       queue[i]->removeProcess();
       delete queue[i];

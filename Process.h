@@ -12,6 +12,9 @@
 class Process
 {
   public:
+    bool inWaitQueue = false;
+    bool printedIsDone = false;
+    bool hasArrived = false;
     //CONSTRUCTORS
     Process();
     Process(std::string inName);
@@ -27,6 +30,8 @@ class Process
     //SETTERS
     void setIAT(double inIAT);
     void setBurstNum(int num);
+    void setBurstTimes(std::vector<std::pair<double,double> >* times);
+    void addToBurstAvg(double burstTime);
     void setBurstTimes(std::vector<std::pair<double,double>* >* times);
     void setWaitDone(int num);
     void setCPUDone(int num);
@@ -34,12 +39,15 @@ class Process
 
     //GETTERS
     double getIAT() const;
+    int getRunningBurstAvg();
     int getBurstNum();
     double getCPUTime();
-    double getCPUTimeNoSped(int index) const;
+    double getCPUTimeNoSped();
     double getIOTime();
     int getRemBursts();
     int getCount();
+
+    std::vector<double> burstAvg;
     int getWaitDone();
     int getCPUDone();
     int getTimeRem();

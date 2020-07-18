@@ -1,5 +1,5 @@
 #include "Process.h"
-
+#include <numeric>
 //CONSTRUCTORS
 Process::Process() {
   name = "A";
@@ -38,12 +38,17 @@ void Process::setBurstTimes(std::vector<std::pair<double,double>* >* times) {
   burstTimes = times;
 }
 
-void Process::setWaitDone(int num) {
-  waitDone = num;
+//GETTERS
+double Process::getIAT() const {
+  return initialArrivalT;
 }
 
-void Process::setCPUDone(int num) {
-  CPUDone = num;
+int Process::getRunningBurstAvg() {
+  return std::accumulate(burstAvg.begin(), burstAvg.end(), 0.0) / burstAvg.size();
+}
+
+void Process::addToBurstAvg(double burstTime) {
+  burstAvg.push_back(burstTime);
 }
 
 void Process::setTimeRem(int num) {
@@ -71,8 +76,8 @@ double Process::getCPUTime() {
   return temp;
 }
 
-double Process::getCPUTimeNoSped(int index) const {
-  return (*burstTimes)[index]->first;
+double Process::getCPUTimeNoSped() const {
+  return (*burstTimes)[count]->first;
 }
 
 double Process::getIOTime() {
