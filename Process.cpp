@@ -9,14 +9,11 @@ Process::Process(std::string inName) {
   name = inName;
 }
 
-Process Process::operator=(Process p) {
-  std::string name = p.getName();
-  Process newP = Process(name);
-  newP.burstNum = p.getBurstNum();
-  newP.initialArrivalT = p.getIAT();
-  newP.setBurstTimes(&p.burstTimes);
-
-  return newP;
+void Process::removeProcess() {
+  for (int i = 0;i<burstNum;i++) {
+    delete (*burstTimes)[i];
+  }
+  delete burstTimes;
 }
 
 //PRINT
@@ -37,8 +34,8 @@ void Process::setBurstNum(int num) {
   burstNum = num;
 }
 
-void Process::setBurstTimes(std::vector<std::pair<double,double> >* times) {
-  burstTimes = *times;
+void Process::setBurstTimes(std::vector<std::pair<double,double>* >* times) {
+  burstTimes = times;
 }
 
 //GETTERS
@@ -54,6 +51,15 @@ void Process::addToBurstAvg(double burstTime) {
   burstAvg.push_back(burstTime);
 }
 
+void Process::setTimeRem(int num) {
+  timeRem = num;
+}
+
+//GETTERS
+double Process::getIAT() const {
+  return initialArrivalT;
+}
+
 int Process::getBurstNum() {
   return burstNum;
 }
@@ -63,19 +69,19 @@ std::string Process::getName() {
 }
 
 double Process::getCPUTime() {
-  double temp = burstTimes[count].first;
+  double temp = (*burstTimes)[count]->first;
   if (count == burstNum-1)
     done = true;
   count++;
   return temp;
 }
 
-double Process::getCPUTimeNoSped(){
-  return burstTimes[count].first;
+double Process::getCPUTimeNoSped() const {
+  return (*burstTimes)[count]->first;
 }
 
 double Process::getIOTime() {
-  double temp = burstTimes[count - 1].second;
+  double temp = (*burstTimes)[count-1]->second;
   //count++;
   return temp;
 }
@@ -86,4 +92,16 @@ int Process::getRemBursts() {
 
 int Process::getCount() {
   return count;
+}
+
+int Process::getWaitDone() {
+  return waitDone;
+}
+
+int Process::getCPUDone() {
+  return CPUDone;
+}
+
+int Process::getTimeRem() {
+  return timeRem;
 }
