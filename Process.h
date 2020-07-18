@@ -42,7 +42,7 @@ class Process
     int getRunningBurstAvg();
     int getBurstNum();
     double getCPUTime();
-    double getCPUTimeNoSped();
+    double getCPUTimeNoSped() const;
     double getIOTime();
     int getRemBursts();
     int getCount();

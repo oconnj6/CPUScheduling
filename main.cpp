@@ -39,7 +39,7 @@ void printQueue(std::vector<Process*> readyQueue) {
   }
 }
 
-void FCFS(std::vector<Process> &queue,std::vector<Process*> &processes, int numP) {
+void FCFS(std::vector<Process*> &processes, int numP) {
   std::vector<int> readyQueue;
   std::vector<int> waitQueue;
   unsigned int doneP = 0;
@@ -669,7 +669,6 @@ int main(int argc, char* argv[]) {
     int numProcesses = 0;
     double lambda;
     int maxNum;
-    int tSlice;
 
     //Read and store command line information
     numProcesses = atoi(argv[1]);

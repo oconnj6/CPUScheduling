@@ -39,9 +39,6 @@ void Process::setBurstTimes(std::vector<std::pair<double,double>* >* times) {
 }
 
 //GETTERS
-double Process::getIAT() const {
-  return initialArrivalT;
-}
 
 int Process::getRunningBurstAvg() {
   return std::accumulate(burstAvg.begin(), burstAvg.end(), 0.0) / burstAvg.size();
@@ -66,6 +63,14 @@ int Process::getBurstNum() {
 
 std::string Process::getName() {
   return name;
+}
+
+void Process::setWaitDone(int num) {
+  waitDone = num;
+}
+
+void Process::setCPUDone(int num) {
+  CPUDone = num;
 }
 
 double Process::getCPUTime() {
