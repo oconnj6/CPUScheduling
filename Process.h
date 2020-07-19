@@ -7,14 +7,15 @@
 #include <string.h>
 #include <utility>
 #include <vector>
+#include <math.h>
 
 //Process class to hold all the necessary process information.
 class Process
 {
   public:
-    bool inWaitQueue = false;
-    bool printedIsDone = false;
-    bool hasArrived = false;
+    bool inWaitQueue;
+    bool printedIsDone;
+    bool hasArrived;
     //CONSTRUCTORS
     Process();
     Process(std::string inName);
@@ -41,6 +42,7 @@ class Process
 
     //GETTERS
     double getIAT() const;
+    int getTau();
     int getRunningBurstAvg();
     int getBurstNum();
     double getCPUTime();
@@ -58,12 +60,13 @@ class Process
   private:
     std::vector<std::pair<double,double>* >* burstTimes;
     std::string name;
-    int timeRem = 0;
-    int waitDone = 0;
-    int CPUDone = 0;
-    int burstNum = 0;
-    bool done = false;
-    int count = 0;
+    int tau;
+    int timeRem;
+    int waitDone;
+    int CPUDone;
+    int burstNum;
+    bool done;
+    int count;
     double initialArrivalT;
 };
 

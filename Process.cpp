@@ -2,10 +2,30 @@
 #include <numeric>
 //CONSTRUCTORS
 Process::Process() {
+  inWaitQueue = false;
+  printedIsDone = false;
+  hasArrived = false;
+  tau = 0;
+  timeRem = 0;
+  waitDone = 0;
+  CPUDone = 0;
+  burstNum = 0;
+  done = false;
+  count = 0;
   name = "A";
 }
 
 Process::Process(std::string inName) {
+  inWaitQueue = false;
+  printedIsDone = false;
+  hasArrived = false;
+  tau = 0;
+  timeRem = 0;
+  waitDone = 0;
+  CPUDone = 0;
+  burstNum = 0;
+  done = false;
+  count = 0;
   name = inName;
 }
 
@@ -41,7 +61,18 @@ void Process::setBurstTimes(std::vector<std::pair<double,double>* >* times) {
 //GETTERS
 
 int Process::getRunningBurstAvg() {
-  return std::accumulate(burstAvg.begin(), burstAvg.end(), 0.0) / burstAvg.size();
+  if (burstAvg.size() == 1 || burstAvg.size() == 0) {
+    tau = burstAvg[0];
+    return tau;
+  }
+  else {
+    tau = ceil((tau + burstAvg[burstAvg.size() - 1]) / 2);
+    return tau;
+  }
+}
+
+int Process::getTau() {
+  return tau;
 }
 
 void Process::addToBurstAvg(double burstTime) {
