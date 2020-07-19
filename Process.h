@@ -28,6 +28,8 @@ class Process
 
 
     //SETTERS
+    void decCount();
+    void incCount();
     void setIAT(double inIAT);
     void setBurstNum(int num);
     void setBurstTimes(std::vector<std::pair<double,double> >* times);

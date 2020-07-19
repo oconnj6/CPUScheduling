@@ -5,6 +5,8 @@
 #include <vector>
 #include <math.h>
 #include "Process.h"
+#include <ostream>
+#include <fstream>
 
 
 void printQueue(std::vector<Process*> &processes, std::vector<int> readyQueue) {
@@ -39,7 +41,7 @@ void printQueue(std::vector<Process*> readyQueue) {
   }
 }
 
-void FCFS(std::vector<Process*> &processes, int numP) {
+void FCFS(std::vector<Process*> &processes, int contextSwitch, std::ofstream & outputFile) {
   std::vector<int> readyQueue;
   std::vector<int> waitQueue;
   unsigned int doneP = 0;
@@ -50,13 +52,13 @@ void FCFS(std::vector<Process*> &processes, int numP) {
   int CPUtimeRem = 0;
   int CPUStart = -1;
   int waitBlock = 0;
-  int totalBurstTime = 0;
+  double totalBurstTime = 0;
   int totalBursts = 0;
-  int totalWaitTime = 0;
+  double totalWaitTime = 0;
   int totalWaits = 0;
   int totalTurnATime = 0;
   int totalTurns = 0;
-
+  int totalCSwitch = 0;
   int time;
   for (time = 0; time > -1;time++) {
     for (unsigned int i = 0;i < processes.size(); i++) {
@@ -75,7 +77,7 @@ void FCFS(std::vector<Process*> &processes, int numP) {
         printQueue(processes, readyQueue);
         totalBurstTime += CPUTime;
         totalBursts++;
-
+        totalCSwitch++;
 
         totalTurnATime += (CPUTime + 2);
         totalTurns++;
@@ -120,7 +122,7 @@ void FCFS(std::vector<Process*> &processes, int numP) {
           if (readyQueue.size() == 0) {
             CPUFinished = -1;
           }
-
+          totalCSwitch++;
           totalWaitTime += IOTime;
           totalWaits ++;
 
@@ -156,11 +158,16 @@ void FCFS(std::vector<Process*> &processes, int numP) {
   std::cout << "Simulator ended for FCFS";
   printQueue(processes, readyQueue);
 
-  std::cout << "AVG burst time = " << totalBurstTime / totalBursts << std::endl;
-  std::cout << "AVG wait time = " << totalWaitTime / totalWaits << std::endl;
-  std::cout << "AVG Turn Around time = " << totalTurnATime / totalTurns << std::endl;
-  std::cout << "Total Preemptions = 0" << std::endl;
-
+  if (outputFile.is_open()) {
+    outputFile << "Algorithm FCFS" << std::endl;
+    outputFile.setf(std::ios::fixed,std::ios::floatfield);
+    outputFile.precision(3);
+    outputFile << "-- average CPU burst time: " << totalBurstTime / (double)totalBursts << " ms" << std::endl;
+    outputFile << "-- average wait time: " << totalWaitTime / (double)totalWaits << " ms" << std::endl;
+    outputFile << "-- average turnaround time: " << totalTurnATime / (double)totalTurns << " ms" << std::endl;
+    outputFile << "-- total number of context switches: " << totalCSwitch << std::endl;
+    outputFile << "-- total number of preemptions: 0" << std::endl;
+  }
 }
 
 
@@ -192,7 +199,7 @@ bool isComplete(std::vector<Process*> & processes, int time, int offCPUTime) {
   return t;
 }
 
-void SJF(std::vector<Process*> &processes, double lambda, int numP) {
+void SJF(std::vector<Process*> &processes, double lambda, int contextSwitch, std::ofstream & outputFile) {
   std::vector<Process*> readyQueue;
   std::vector<Process*> waitQueue;
   unsigned int doneP = 0;
@@ -203,13 +210,13 @@ void SJF(std::vector<Process*> &processes, double lambda, int numP) {
   int CPUtimeRem = 0;
   int CPUStart = -1;
   int waitBlock = 0;
-  int totalBurstTime = 0;
+  double totalBurstTime = 0;
   int totalBursts = 0;
-  int totalWaitTime = 0;
+  double totalWaitTime = 0;
   int totalWaits = 0;
   int totalTurnATime = 0;
   int totalTurns = 0;
-
+  int totalCSwitch = 0;
   int time;
   for (time = 0; time > -1;time++) {
     for (unsigned int i = 0;i < processes.size(); i++) {
@@ -232,7 +239,7 @@ void SJF(std::vector<Process*> &processes, double lambda, int numP) {
         totalBurstTime += CPUTime;
         totalBursts++;
 
-
+        totalCSwitch++;
         totalTurnATime += (CPUTime + 2);
         totalTurns++;
     }
@@ -281,7 +288,7 @@ void SJF(std::vector<Process*> &processes, double lambda, int numP) {
           if (readyQueue.size() == 0) {
             CPUFinished = -1;
           }
-
+          totalCSwitch++;
           totalWaitTime += IOTime;
           totalWaits ++;
 
@@ -319,13 +326,19 @@ void SJF(std::vector<Process*> &processes, double lambda, int numP) {
   std::cout << "Simulator ended for SJF";
   printQueue(readyQueue);
 
-  std::cout << "AVG burst time = " << totalBurstTime / totalBursts << std::endl;
-  std::cout << "AVG wait time = " << totalWaitTime / totalWaits << std::endl;
-  std::cout << "AVG Turn Around time = " << totalTurnATime / totalTurns << std::endl;
-  std::cout << "Total Preemptions = 0" << std::endl;
+  if (outputFile.is_open()) {
+    outputFile << "Algorithm SJF" << std::endl;
+    outputFile.setf(std::ios::fixed,std::ios::floatfield);
+    outputFile.precision(3);
+    outputFile << "-- average CPU burst time: " << totalBurstTime / (double)totalBursts << " ms" << std::endl;
+    outputFile << "-- average wait time: " << totalWaitTime / (double)totalWaits << " ms" << std::endl;
+    outputFile << "-- average turnaround time: " << totalTurnATime / (double)totalTurns << " ms" << std::endl;
+    outputFile << "-- total number of context switches: " << totalCSwitch << std::endl;
+    outputFile << "-- total number of preemptions: 0" << std::endl;
+  }
 }
 
-void SRT(std::vector<Process*> &processes, double lambda, int numP) {
+void SRT(std::vector<Process*> &processes, double lambda, int contextSwitch, std::ofstream & outputFile) {
   std::vector<Process*> readyQueue;
   std::vector<Process*> waitQueue;
   unsigned int doneP = 0;
@@ -336,13 +349,14 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
   int CPUtimeRem = 0;
   int CPUStart = -1;
   int waitBlock = 0;
-  int totalBurstTime = 0;
+  double totalBurstTime = 0;
   int totalBursts = 0;
-  int totalWaitTime = 0;
+  double totalWaitTime = 0;
   int totalWaits = 0;
-  int totalTurnATime = 0;
+  double totalTurnATime = 0;
   int totalTurns = 0;
   int totalPreemptions = 0;
+  int totalCSwitch = 0;
 
   int time;
   for (time = 0; time > -1;time++) {
@@ -360,16 +374,19 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
     }
     if (readyQueue.size() > 0 && CPUProcess != NULL) {
       for (unsigned int i = 0; i < readyQueue.size(); i++) {
-        if (CPUProcess->getCPUTimeNoSped() > readyQueue[i]->getCPUTimeNoSped()) {
+        if (!CPUProcess->isDone() && !readyQueue[i]->isDone() &&
+          CPUProcess->getCPUTimeNoSped() > readyQueue[i]->getCPUTimeNoSped()) {
           std::cout << "time " << time << "ms: Process " << readyQueue[i]->getName();
           std::cout << " (tau " << readyQueue[i]->getRunningBurstAvg() << "ms) will preempt ";
           std::cout << CPUProcess->getName();
           readyQueue.push_back(CPUProcess);
           CPUProcess = readyQueue[i];
+          CPUTime = CPUProcess->getCPUTime();
           readyQueue.erase(readyQueue.begin() + i);
           std::sort(readyQueue.begin(), readyQueue.end(), SJFcomparator);
           std::reverse(readyQueue.begin(), readyQueue.end());
           printQueue(readyQueue);
+          totalPreemptions++;
         }
       }
     }
@@ -381,7 +398,7 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
         totalBurstTime += CPUTime;
         totalBursts++;
 
-
+        totalCSwitch++;
         totalTurnATime += (CPUTime + 2);
         totalTurns++;
     }
@@ -391,6 +408,7 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
         CPUProcess = readyQueue[0];
         readyQueue.erase(readyQueue.begin());
         CPUTime = CPUProcess->getCPUTime();
+        std::cout << "Count for process: " << CPUProcess->getName() << " is: " << CPUProcess->getCount() << std::endl;
         int cs = 1;
         if (CPUProcess->getIAT() == time)
           cs = 2;
@@ -414,7 +432,6 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
         printQueue(readyQueue);
 
         if (waitBlock > 0) {
-          std::cout << "waitBlock++" << std::endl;
           waitBlock++;
         }
       }
@@ -431,9 +448,9 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
           if (readyQueue.size() == 0) {
             CPUFinished = -1;
           }
-
+          totalCSwitch++;
           totalWaitTime += IOTime;
-          totalWaits ++;
+          totalWaits++;
 
           waitQueue.push_back(CPUProcess);
           CPUProcess = NULL;
@@ -487,13 +504,19 @@ void SRT(std::vector<Process*> &processes, double lambda, int numP) {
   std::cout << "Simulator ended for SRT";
   printQueue(readyQueue);
 
-  std::cout << "AVG burst time = " << totalBurstTime / totalBursts << std::endl;
-  std::cout << "AVG wait time = " << totalWaitTime / totalWaits << std::endl;
-  std::cout << "AVG Turn Around time = " << totalTurnATime / totalTurns << std::endl;
-  std::cout << "Total Preemptions = " << totalPreemptions << std::endl;
+  if (outputFile.is_open()) {
+    outputFile << "Algorithm SRT" << std::endl;
+    outputFile.setf(std::ios::fixed,std::ios::floatfield);
+    outputFile.precision(3);
+    outputFile << "-- average CPU burst time: " << totalBurstTime / (double)totalBursts << " ms" << std::endl;
+    outputFile << "-- average wait time: " << totalWaitTime / (double)totalWaits << " ms" << std::endl;
+    outputFile << "-- average turnaround time: " << totalTurnATime / (double)totalTurns << " ms" << std::endl;
+    outputFile << "-- total number of context switches: " << totalCSwitch << std::endl;
+    outputFile << "-- total number of preemptions: " << totalPreemptions << std::endl;
+  }
 }
 
-void RR(std::vector<Process*> &processes, int tSlice) {
+void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::ofstream & outputFile) {
   std::vector<int> readyQueue;
   std::vector<int> waitQueue;
   unsigned int doneP = 0;
@@ -504,6 +527,14 @@ void RR(std::vector<Process*> &processes, int tSlice) {
   int CPUtimeRem = 0;
   int CPUStart = -1;
   int waitBlock = 0;
+  double totalBurstTime = 0;
+  int totalBursts = 0;
+  double totalWaitTime = 0;
+  int totalWaits = 0;
+  double totalTurnATime = 0;
+  int totalTurns = 0;
+  int totalPreemptions = 0;
+  int totalCSwitch = 0;
 
   int time;
   for (time = 0; time > -1;time++) {
@@ -529,6 +560,11 @@ void RR(std::vector<Process*> &processes, int tSlice) {
         std::cout << " started using the CPU for " << CPUTime << "ms burst";
         printQueue(processes, readyQueue);
       }
+      totalBurstTime += CPUTime;
+      totalBursts++;
+      totalTurnATime += CPUTime + contextSwitch;
+      totalTurns++;
+      totalCSwitch++;
     }
 
     if (readyQueue.size() > 0) {
@@ -563,16 +599,14 @@ void RR(std::vector<Process*> &processes, int tSlice) {
       }
     }
 
-    if ( time >= CPUFinished && CPUFinished != -1) {
+    if ( time >= CPUFinished && CPUFinished != -1 && CPUProcess != 99) {
       bool done = true;
-      if (processes[CPUProcess]->getCPUDone() != 0 && waitBlock < 2) {
+    //  std::cout << "CPUProcess is : " << CPUProcess << std::endl;
+      if (processes[CPUProcess]->getCPUDone() != 0 && waitBlock == 0) {
         std::cout << "time " << time << "ms: Process " << processes[CPUProcess]->getName();
         std::cout << " completed a CPU burst; " << processes[CPUProcess]->getRemBursts();
         std::cout << " bursts to go";
         printQueue(processes, readyQueue);
-        if (waitBlock > 0) {
-          waitBlock++;
-        }
       }
       else if (processes[CPUProcess]->getCPUDone() == 0){
         if (readyQueue.size() == 0 ) {
@@ -586,16 +620,19 @@ void RR(std::vector<Process*> &processes, int tSlice) {
         else {
           processes[CPUProcess]->setTimeRem(CPUtimeRem);
           readyQueue.push_back(CPUProcess);
-
           std::cout << "time " <<  time << "ms: Time slice expired; process ";
           std::cout << processes[CPUProcess]->getName() << " preempted with ";
           std::cout << CPUtimeRem << "ms to go";
           printQueue(processes, readyQueue);
+          totalPreemptions++;
           CPUProcess = 99;
         }
       }
 
       if ( CPUProcess != 99) {
+        /*std::cout << "processes[CPUProcess]->getRemBursts(): " << processes[CPUProcess]->getRemBursts() << std::endl;
+        std::cout << "done: " << done << std::endl;
+        std::cout << "waitblock: " << waitBlock << std::endl;*/
         if (processes[CPUProcess]->getRemBursts() != 0 && done && waitBlock == 0) {
           int IOTime = processes[CPUProcess]->getIOTime();
           std::cout << "time " << time << "ms: Process " << processes[CPUProcess]->getName();
@@ -610,6 +647,9 @@ void RR(std::vector<Process*> &processes, int tSlice) {
 
           waitQueue.push_back(CPUProcess);
           CPUProcess = 99;
+          totalWaitTime += IOTime;
+          totalWaits++;
+          totalCSwitch++;
         }
         else if (processes[CPUProcess]->getRemBursts() == 0 && done){
           std::cout << "time " << time << "ms: Process " << processes[CPUProcess]->getName();
@@ -637,6 +677,16 @@ void RR(std::vector<Process*> &processes, int tSlice) {
   }
   std::cout << "Simulator ended for RR";
   printQueue(processes, readyQueue);
+  if (outputFile.is_open()) {
+    outputFile << "Algorithm RR" << std::endl;
+    outputFile.setf(std::ios::fixed,std::ios::floatfield);
+    outputFile.precision(3);
+    outputFile << "-- average CPU burst time: " << totalBurstTime / (double)totalBursts << " ms" << std::endl;
+    outputFile << "-- average wait time: " << totalWaitTime / (double)totalWaits << " ms" << std::endl;
+    outputFile << "-- average turnaround time: " << totalTurnATime / (double)totalTurns << " ms" << std::endl;
+    outputFile << "-- total number of context switches: " << totalCSwitch << std::endl;
+    outputFile << "-- total number of preemptions: " << totalPreemptions << std::endl;
+  }
 }
 
 
@@ -645,16 +695,18 @@ bool operator<(const Process & lhs, const Process & rhs) {
 }
 
 void orderQueue(int alg,
-                    int numP, std::vector<Process*> &processes, float lambda, int contextSwitch, int tSlice) {
+                    int numP, std::vector<Process*> &processes, float lambda, int contextSwitch, int tSlice, std::ofstream & outputFile) {
   if (alg == 1) {
     for (unsigned int i = 0;i < processes.size();i++) {
       std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
       std::cout << processes[i]->getIAT() << "ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts" << std::endl;
     }
+    std::cout << "time 0ms: Simulator started for FCFS [Q <empty>]" << std::endl;
+
     //Need to sort array by IAT()
 
-    FCFS(processes, numP);
+    FCFS(processes, contextSwitch, outputFile);
   }
   if (alg == 2) {
     for (unsigned int i = 0;i < processes.size();i++) {
@@ -662,9 +714,10 @@ void orderQueue(int alg,
       std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
     }
+    std::cout << "time 0ms: Simulator started for SJF [Q <empty>]" << std::endl;
     sort(processes.begin(), processes.end(), comparator);
     std::reverse(processes.begin(), processes.end());
-    SJF(processes, lambda, contextSwitch);
+    SJF(processes, lambda, contextSwitch, outputFile);
   }
   if (alg == 3) {
     for (unsigned int i = 0;i < processes.size();i++) {
@@ -672,9 +725,10 @@ void orderQueue(int alg,
       std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
     }
+    std::cout << "time 0ms: Simulator started for SRT [Q <empty>]" << std::endl;
     sort(processes.begin(), processes.end(), comparator);
     std::reverse(processes.begin(), processes.end());
-    SRT(processes, lambda, contextSwitch);
+    SRT(processes, lambda, contextSwitch, outputFile);
   }
   if (alg == 4) {
     std::cout << processes.size() << std::endl;
@@ -683,13 +737,15 @@ void orderQueue(int alg,
       std::cout << processes[i]->getIAT() << " ms) " << processes[i]->getBurstNum();
       std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
     }
-    RR(processes, tSlice);
+    std::cout << "time 0ms: Simulator started for RR [Q <empty>]" << std::endl;
+    RR(processes, tSlice, contextSwitch, outputFile);
   }
 }
 
 int main(int argc, char* argv[]) {
   //Loop to run all scheduling algorithms
-  for (int algo = 1; algo < 4; algo++) {
+  std::ofstream outputFile("simout.txt");
+  for (int algo = 1; algo < 5; algo++) {
     int numProcesses = 0;
     double lambda;
     int maxNum;
@@ -759,7 +815,7 @@ int main(int argc, char* argv[]) {
     //Orders the queue according to the proper algorithm
     sort(queue.begin(), queue.end(), comparator);
     std::reverse(queue.begin(), queue.end());
-    orderQueue(algo, numProcesses, queue, lambda, contextSwitch, tSlice);
+    orderQueue(algo, numProcesses, queue, lambda, contextSwitch, tSlice, outputFile);
     for (int i = 0;i<numProcesses;i++) {
       queue[i]->removeProcess();
       delete queue[i];

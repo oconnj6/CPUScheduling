@@ -85,6 +85,13 @@ double Process::getCPUTimeNoSped() const {
   return (*burstTimes)[count]->first;
 }
 
+void Process::decCount() {
+  count--;
+}
+
+void Process::incCount() {
+  count++;
+}
 double Process::getIOTime() {
   double temp = (*burstTimes)[count-1]->second;
   //count++;
