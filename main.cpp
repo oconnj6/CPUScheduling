@@ -7,6 +7,7 @@
 #include "Process.h"
 #include <ostream>
 #include <fstream>
+#include <algorithm>
 
 
 void printQueue(std::vector<Process*> &processes, std::vector<int> readyQueue) {
@@ -79,7 +80,7 @@ void FCFS(std::vector<Process*> &processes, int contextSwitch, std::ofstream & o
         totalBursts++;
         totalCSwitch++;
 
-        totalTurnATime += (CPUTime + 2);
+        totalTurnATime += (CPUTime + (contextSwitch / 2));
         totalTurns++;
     }
 
@@ -88,9 +89,9 @@ void FCFS(std::vector<Process*> &processes, int contextSwitch, std::ofstream & o
         CPUProcess = readyQueue[0];
         readyQueue.erase(readyQueue.begin());
         CPUTime = processes[CPUProcess]->getCPUTime();
-        int cs = 1;
+        int cs = contextSwitch / 2;
         if (processes[CPUProcess]->getIAT() == time)
-          cs = 2;
+          cs++;
 
         CPUStart = time + cs;
         processes[CPUProcess]->setCPUDone( CPUTime );
@@ -118,7 +119,7 @@ void FCFS(std::vector<Process*> &processes, int contextSwitch, std::ofstream & o
           std::cout << time + IOTime << "ms";
           printQueue(processes, readyQueue);
           waitBlock++;
-          processes[CPUProcess]->setWaitDone(time + IOTime);
+          processes[CPUProcess]->setWaitDone(time + IOTime + (contextSwitch / 2));
           if (readyQueue.size() == 0) {
             CPUFinished = -1;
           }
@@ -516,7 +517,7 @@ void SRT(std::vector<Process*> &processes, double lambda, int contextSwitch, std
   }
 }
 
-void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::ofstream & outputFile) {
+void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::string rrA, std::ofstream & outputFile) {
   std::vector<int> readyQueue;
   std::vector<int> waitQueue;
   unsigned int doneP = 0;
@@ -540,8 +541,13 @@ void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::of
   for (time = 0; time > -1;time++) {
     for (unsigned int i = 0;i < processes.size(); i++) {
       if (processes[i]->getIAT() == time) {
-        readyQueue.push_back(i);
-        std::cout << "time " << time << "ms: Process " << processes[readyQueue[readyQueue.size()-1]]->getName();
+        if (rrA[0] == 'B') {
+          readyQueue.insert(readyQueue.begin(), i);
+        }
+        else
+          readyQueue.push_back(i);
+
+        std::cout << "time " << time << "ms: Process " << processes[i]->getName();
         std::cout << " arrived; added to the ready queue";
         printQueue(processes, readyQueue);
         pAdded++;
@@ -619,7 +625,12 @@ void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::of
         }
         else {
           processes[CPUProcess]->setTimeRem(CPUtimeRem);
-          readyQueue.push_back(CPUProcess);
+          if (rrA[0] == 'B') {
+            readyQueue.insert(readyQueue.begin(), CPUProcess);
+          }
+          else
+            readyQueue.push_back(CPUProcess);
+
           std::cout << "time " <<  time << "ms: Time slice expired; process ";
           std::cout << processes[CPUProcess]->getName() << " preempted with ";
           std::cout << CPUtimeRem << "ms to go";
@@ -666,7 +677,11 @@ void RR(std::vector<Process*> &processes, int tSlice, int contextSwitch, std::of
       if (time == processes[waitQueue[0]]->getWaitDone()) {
         waitBlock = 0;
 
-        readyQueue.push_back(waitQueue[0]);
+        if (rrA[0] == 'B') {
+          readyQueue.insert(readyQueue.begin(), waitQueue[0]);
+        }
+        else
+          readyQueue.push_back(waitQueue[0]);
         waitQueue.erase(waitQueue.begin());
 
         std::cout << "time " << time << "ms: Process " << processes[waitQueue[0]]->getName();
@@ -694,8 +709,8 @@ bool operator<(const Process & lhs, const Process & rhs) {
     return lhs.getIAT() < rhs.getIAT();
 }
 
-void orderQueue(int alg,
-                    int numP, std::vector<Process*> &processes, float lambda, int contextSwitch, int tSlice, std::ofstream & outputFile) {
+void orderQueue(int alg, int numP, std::vector<Process*> &processes, float lambda,
+      int contextSwitch, int tSlice, std::string rrA, std::ofstream & outputFile) {
   if (alg == 1) {
     for (unsigned int i = 0;i < processes.size();i++) {
       std::cout << "Process " << processes[i]->getName() << " [NEW] (arrival time ";
@@ -738,14 +753,14 @@ void orderQueue(int alg,
       std::cout << " CPU bursts (tau " << 1 / lambda << "ms)" << std::endl;
     }
     std::cout << "time 0ms: Simulator started for RR [Q <empty>]" << std::endl;
-    RR(processes, tSlice, contextSwitch, outputFile);
+    RR(processes, tSlice, contextSwitch, rrA, outputFile);
   }
 }
 
 int main(int argc, char* argv[]) {
   //Loop to run all scheduling algorithms
   std::ofstream outputFile("simout.txt");
-  for (int algo = 1; algo < 5; algo++) {
+  for (int algo = 4; algo < 5; algo++) {
     int numProcesses = 0;
     double lambda;
     int maxNum;
@@ -757,6 +772,8 @@ int main(int argc, char* argv[]) {
     maxNum = atoi(argv[4]);
     int contextSwitch = atoi(argv[5]);
     int tSlice = atoi(argv[7]);
+    std::string rrA = argv[8];
+
     //Vector of processes
     std::vector<Process*> queue(numProcesses);
 
@@ -815,7 +832,7 @@ int main(int argc, char* argv[]) {
     //Orders the queue according to the proper algorithm
     sort(queue.begin(), queue.end(), comparator);
     std::reverse(queue.begin(), queue.end());
-    orderQueue(algo, numProcesses, queue, lambda, contextSwitch, tSlice, outputFile);
+    orderQueue(algo, numProcesses, queue, lambda, contextSwitch, tSlice, rrA, outputFile);
     for (int i = 0;i<numProcesses;i++) {
       queue[i]->removeProcess();
       delete queue[i];
