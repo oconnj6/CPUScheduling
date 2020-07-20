@@ -113,7 +113,11 @@ double Process::getCPUTime() {
 }
 
 double Process::getCPUTimeNoSped() const {
-  return (*burstTimes)[count]->first;
+  int check = 0;
+  if (count >= burstNum) {
+    check = 1;
+  }
+  return (*burstTimes)[count - check]->first;
 }
 
 void Process::decCount() {
